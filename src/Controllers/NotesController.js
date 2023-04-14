@@ -1,12 +1,17 @@
 const knex = require('../database/knex')
 const AppError = require('../utils/AppError')
+const sqliteConnection = require('../database/sqlite')
 
 class NotesControllers {
   async create(request, response) {
     const { title, description, tags, rating } = request.body
     const { user_id } = request.params
 
-    // const checkRatingsBetween1And5 = await knex('notes').where('rating', rating)
+    const checkTitleExists = await knex('notes').where('title', title).first()
+
+    if (checkTitleExists) {
+      throw new AppError('Title already on use.', 401)
+    }
 
     if (rating < 1 || rating > 5) {
       throw new AppError(
@@ -87,6 +92,36 @@ class NotesControllers {
       }
     })
     return response.json(noteWithTags)
+  }
+
+  async update(request, response) {
+    const { title, description, rating } = request.body
+    const { id } = request.params
+    const database = await sqliteConnection()
+    const note = await database.get('SELECT * FROM users WHERE id = (?)', [id])
+
+    note.title = title ?? note.title
+    note.description = description ?? note.description
+    note.rating = rating ?? note.rating
+
+    if (note.rating < 1 || note.rating > 5) {
+      throw new AppError(
+        'You can only update older rates that movie with scores between 1 and 5',
+        401
+      )
+    }
+
+    await database.run(
+      `
+    UPDATE notes SET
+    title = ?,
+    description = ?,
+    rating = ?,
+    updated_at = DATETIME('NOW')
+    WHERE id = ?`,
+      [note.title, note.description, note.rating, id]
+    )
+    return response.status(200).json()
   }
 }
 
