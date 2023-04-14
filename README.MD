@@ -55,3 +55,9 @@
 ```http
   GET /localhost:3333/tags/:user_id
 ```
+
+#### Update Movie Note
+
+```http
+  PUT /localhost:3333/notes/:id
+```
