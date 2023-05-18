@@ -18,29 +18,27 @@ class UsersController {
 
     const hashedPassword = await hash(password, 8)
 
-    await database.run(
-      'INSERT INTO users (name, email, password) VALUES (?, ?, ?)',
-      [name, email, hashedPassword]
-    )
+    await knex('users').insert({
+      name: name,
+      email: email,
+      password: hashedPassword
+    })
 
     return response.status(201).json()
   }
 
   async update(request, response) {
     const { name, email, password, old_password } = request.body
-    const { id } = request.params
+    const user_id = request.user.id
 
     const database = await sqliteConnection()
-    const user = await database.get('SELECT * FROM users WHERE id = (?)', [id])
+    const user = await knex('users').where('id', user_id).first()
 
     if (!user) {
       throw new AppError('User not found.', 401)
     }
 
-    const userWithUpdatedEmail = await database.get(
-      'SELECT * FROM users WHERE email = (?)',
-      [email]
-    )
+    const userWithUpdatedEmail = await knex('users').where('email', email)
 
     if (userWithUpdatedEmail && userWithUpdatedEmail.id !== user.id) {
       throw new AppError('E-mail already on use.', 401)
@@ -71,7 +69,7 @@ class UsersController {
     password = ?,
     updated_at = DATETIME('NOW')
     WHERE id = ?`,
-      [user.name, user.email, user.password, id]
+      [user.name, user.email, user.password, user_id]
     )
     return response.status(200).json()
   }

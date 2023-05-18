@@ -5,7 +5,7 @@ const sqliteConnection = require('../database/sqlite')
 class NotesControllers {
   async create(request, response) {
     const { title, description, tags, rating } = request.body
-    const { user_id } = request.params
+    const user_id = request.user.id
 
     const checkTitleExists = await knex('notes').where('title', title).first()
 
@@ -63,7 +63,8 @@ class NotesControllers {
   }
 
   async index(request, response) {
-    const { title, user_id, tags } = request.query
+    const { title, tags } = request.query
+    const { user_id } = request.user.id
     let notes
     if (tags) {
       notes
@@ -83,7 +84,7 @@ class NotesControllers {
     }
 
     const userTags = await knex('tags').where({ user_id })
-    const noteWithTags = notes.maps(note => {
+    const noteWithTags = notes.map(note => {
       const noteTags = userTags.filter(tag => tag.note_id === note.id)
 
       return {
